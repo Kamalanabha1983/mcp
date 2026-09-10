@@ -1,0 +1,12 @@
+{
+  "profiles": {
+    "PgsqlMcpClient": {
+      "commandName": "Project",
+      "launchBrowser": true,
+      "environmentVariables": {
+        "ASPNETCORE_ENVIRONMENT": "Development"
+      },
+      "applicationUrl": "https://localhost:63302;http://localhost:63303"
+    }
+  }
+}
