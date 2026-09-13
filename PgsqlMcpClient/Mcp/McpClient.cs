@@ -33,7 +33,11 @@ public sealed class McpClient
         logger.LogInformation("Connected to MCP server with protocol {ProtocolVersion}.",
             result.GetProperty("protocolVersion").GetString());
     }
-
+private double CalculateTotal(double subtotal)
+{
+    // Bad: What does 0.18 mean? (Is it VAT? GST? Luxury tax?)
+    return subtotal + (subtotal * 0.18); 
+}
     public async Task<IReadOnlyList<McpTool>> ListToolsAsync(CancellationToken cancellationToken)
     {
         var result = await SendAsync("tools/list", null, cancellationToken);
@@ -70,7 +74,7 @@ public sealed class McpClient
             Content = JsonContent.Create(new { jsonrpc = "2.0", method })
         };
         using var response = await httpClient.SendAsync(request, HttpCompletionOption.ResponseHeadersRead, cancellationToken);
-        response.EnsureSuccessStatusCode();
+        await EnsureSuccessWithBodyAsync(response, cancellationToken);
     }
 
     private async Task<JsonRpcResponse> SendRequestAsync(object payload, CancellationToken cancellationToken)
@@ -80,9 +84,22 @@ public sealed class McpClient
             Content = JsonContent.Create(payload)
         };
         using var response = await httpClient.SendAsync(request, HttpCompletionOption.ResponseHeadersRead, cancellationToken);
-        response.EnsureSuccessStatusCode();
+        await EnsureSuccessWithBodyAsync(response, cancellationToken);
 
         var result = await response.Content.ReadFromJsonAsync<JsonRpcResponse>(JsonOptions, cancellationToken);
         return result ?? throw new InvalidOperationException("MCP server returned an empty response.");
+    }
+
+    private static async Task EnsureSuccessWithBodyAsync(
+        HttpResponseMessage response,
+        CancellationToken cancellationToken)
+    {
+        if (response.IsSuccessStatusCode)
+        {
+            return;
+        }
+
+        var body = await response.Content.ReadAsStringAsync(cancellationToken);
+        throw new HttpRequestException($"Request failed with status code {response.StatusCode}: {body}");
     }
 }
